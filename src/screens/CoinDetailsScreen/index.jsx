@@ -1,58 +1,97 @@
-import { View, Text, Dimensions } from "react-native";
-import React from "react";
+import {
+  View,
+  Text,
+  Dimensions,
+  TextInput,
+  ActivityIndicator,
+} from "react-native";
+import React, { useState, useEffect } from "react";
+import { useRoute } from "@react-navigation/native";
 
 import Coin from "../../../assets/data/crypto.json";
 import CoinDetailHeader from "./components/CoinDetailHeader";
 import styles from "./styles";
 import { AntDesign } from "@expo/vector-icons";
-import {
-  ChartDot,
-  ChartPath,
-  ChartPathProvider,
-  ChartYLabel,
-} from "@rainbow-me/animated-charts";
+import { getDetailCoinData, getCoinMarketChart } from "../../services/requests";
+
+import { LineChart } from "react-native-wagmi-charts";
 
 const screenWidth = Dimensions.get("window").width;
 
 const CoinDetail = () => {
+  const [coin, setCoin] = useState(null);
+  const [coinMarketData, setCoinMarketData] = useState(null);
+  const route = useRoute();
+  const {
+    params: { coinId },
+  } = route;
+
+  const [loading, setLoading] = useState(false);
+  const [coinValue, setCoinValue] = useState("1");
+  const [usdValue, setUsdValue] = useState("");
+
+  const fetchCoinData = async () => {
+    setLoading(true);
+    const fetchedCoinData = await getDetailCoinData(coinId);
+    const fetchedCoinMarketData = await getCoinMarketChart(coinId);
+    setCoin(fetchedCoinData);
+    setCoinMarketData(fetchedCoinMarketData);
+    setUsdValue(fetchedCoinData.market_data.current_price.usd.toString());
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCoinData();
+  }, []);
+
+  if (loading || !coin || !coinMarketData) {
+    return <ActivityIndicator size="large" />;
+  }
+
   const {
     image: { small },
     name,
     symbol,
-    prices,
     market_data: {
       market_cap_rank,
       price_change_percentage_24h,
       current_price: { usd },
     },
-  } = Coin;
+  } = coin;
+  const { prices } = coinMarketData;
 
   const percentageColor =
     price_change_percentage_24h < 0 ? "#ea3943" : "#16c784";
-
   const chartColor = usd > prices[0][1] ? "#16c784" : "#ea3943";
 
-  function formatCurrency(value) {
+  function formatCurrency({ value }) {
     "worklet";
-    if (value === "") {
+    if (value < 100) {
       return `$${usd.toFixed(2)}`;
     }
-    return `${parseFloat(value).toFixed(2)}`;
+    return `$${parseFloat(value).toFixed(2)}`;
   }
+
+  const changeCoinValue = (value) => {
+    setCoinValue(value);
+    const floatValue = parseFloat(value.replace(",", ".")) || 0;
+    setUsdValue((floatValue * usd).toString());
+  };
+  const changeUsdValue = (value) => {
+    setUsdValue(value);
+    const floatValue = parseFloat(value.replace(",", ".")) || 0;
+    setCoinValue((floatValue / usd).toString());
+  };
 
   return (
     <View style={{ paddingHorizontal: 10 }}>
-      <ChartPathProvider
-        data={{
-          points: prices.map(([x, y]) => ({ x, y })),
-          smoothingStrategy: "bezier",
-        }}
+      <CoinDetailHeader coin={coin} />
+      <LineChart.Provider
+        data={prices.map(([x, y]) => ({ timestamp: y, value: y }))}
       >
-        <CoinDetailHeader Coin={Coin} />
         <View style={styles.priceContainer}>
           <View>
             <Text style={styles.name}>{name}</Text>
-            <ChartYLabel format={formatCurrency} style={styles.currentPrice} />
           </View>
           <View
             style={{
@@ -77,21 +116,37 @@ const CoinDetail = () => {
             </Text>
           </View>
         </View>
-
-        <View>
-          <ChartPath
-            strokeWidth={2}
-            height={screenWidth / 2}
-            stroke={chartColor}
-            width={screenWidth}
-          />
-          <ChartDot
-            style={{
-              backgroundColor: chartColor,
-            }}
-          />
+        <LineChart.DatetimeText
+          format={formatCurrency}
+          style={styles.currentPrice}
+        />
+        <LineChart width={screenWidth} height={screenWidth / 2}>
+          <LineChart.Path color={chartColor} />
+          <LineChart.CursorCrosshair color={chartColor} />
+        </LineChart>
+        <View style={{ flexDirection: "row" }}>
+          <View style={{ flexDirection: "row", flex: 1 }}>
+            <Text style={{ color: "white", alignSelf: "center" }}>
+              {symbol.toUpperCase()}
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={coinValue}
+              keyboardType="numeric"
+              onChangeText={changeCoinValue}
+            />
+          </View>
+          <View style={{ flexDirection: "row", flex: 1 }}>
+            <Text style={{ color: "white", alignSelf: "center" }}>USD</Text>
+            <TextInput
+              style={styles.input}
+              value={usdValue}
+              keyboardType="numeric"
+              onChangeText={changeUsdValue}
+            />
+          </View>
         </View>
-      </ChartPathProvider>
+      </LineChart.Provider>
     </View>
   );
 };
