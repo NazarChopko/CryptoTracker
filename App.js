@@ -1,12 +1,20 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, ActivityIndicator } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
-import HomeScreen from "./src/screens/HomeScreen";
-import CoinDetail from "./src/screens/CoinDetailsScreen";
 import Navigation from "./src/navigation";
 import WatchlistProvider from "./src/context/WatchlistContext";
+import { RecoilRoot } from "recoil";
+import { useFonts, Inter_900Black } from "@expo-google-fonts/inter";
 
 export default function App() {
+  let [fontsLoaded] = useFonts({
+    Inter_900Black,
+    DroidSans: require("./assets/fonts/DroidSans.ttf"),
+  });
+
+  if (!fontsLoaded) {
+    return <ActivityIndicator size={"large"} />;
+  }
   return (
     <NavigationContainer
       theme={{
@@ -15,12 +23,14 @@ export default function App() {
         },
       }}
     >
-      <WatchlistProvider>
-        <View style={styles.container}>
-          <Navigation />
-          <StatusBar style="light" />
-        </View>
-      </WatchlistProvider>
+      <RecoilRoot>
+        <WatchlistProvider>
+          <View style={styles.container}>
+            <Navigation />
+            <StatusBar style="light" />
+          </View>
+        </WatchlistProvider>
+      </RecoilRoot>
     </NavigationContainer>
   );
 }

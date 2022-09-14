@@ -3,7 +3,8 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
 import WatchListScreen from "../screens/WatchlistScreen";
-import { Entypo, FontAwesome } from "@expo/vector-icons";
+import { Entypo, FontAwesome, Foundation } from "@expo/vector-icons";
+import PortfolioScreen from "../screens/PortfolioScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -26,6 +27,19 @@ const BottomTabNavigation = () => {
         options={{
           tabBarIcon: ({ focused, size, color }) => (
             <Entypo name="home" size={focused ? 30 : 25} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Portfolio"
+        component={PortfolioScreen}
+        options={{
+          tabBarIcon: ({ focused, size, color }) => (
+            <Foundation
+              name="graph-pie"
+              size={focused ? 35 : 30}
+              color={color}
+            />
           ),
         }}
       />
